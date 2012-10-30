@@ -3,7 +3,7 @@
 Plugin Name: CF Abritrary Text
 Plugin URI: http://crowdfavorite.com
 Description: Insert arbitrary text (usually ads) at specific places in stories
-Version: 0.1a
+Version: 0.2
 Author: Crowd Favorite
 Author URI: http://crowdfavorite.com
 */
@@ -33,6 +33,7 @@ class cf_arbitrary_text {
 
 		if (is_admin() && $pagenow=='options-general.php') {
 			add_action('admin_enqueue_scripts', 'cf_arbitrary_text::adminEnqueueScripts');
+			add_action('admin_head', 'cf_arbitrary_text::adminEnqueueStyles');
 		}
 	}
 
@@ -53,6 +54,7 @@ class cf_arbitrary_text {
 			'package_added' => __('The package was sucessfully added.'),
 			'package_edited' => __('The package was successfully edited.'),
 			'package_deleted' => __('The package was successfully deleted.'),
+			'invalid_package' => __('The package settings given were invalid.'),
 		);
 
 		return $messages[$name];
@@ -150,31 +152,6 @@ class cf_arbitrary_text {
 	}
 
 	/**
-	 * Process to Add a new package
-	 */
-	public static function addPackageProcess() {
-		// Grab existing packages
-		$packages = get_option('_cf-arbitrary-text-packages');
-		$new_package_name = esc_html($_POST['package']['name']);
-
-		// Verify name does not exist.
-		$new_package = $_POST['zones'];
-
-		// remove palceholder
-		unset($new_package['xxx']);
-
-		// Sanitize and verify information
-
-		// Report errors
-
-		// Save information
-		$packages[$new_package_name] = $new_package;
-		update_option('_cf-arbitrary-text-packages', $packages);
-
-		wp_redirect('/wp-admin/options-general.php?page=cf-arbitrary-text&message=package_added', $status = 302);
-	}
-
-	/**
 	 * Edit package page
 	 */
 	public static function editPackage() {
@@ -198,30 +175,68 @@ class cf_arbitrary_text {
 		include('views/edit-package.php');
 	}
 
+
 	/**
-	 * Process to edit an existing package
+	 * Update package data on save
 	 */
-	public static function editPackageProcess() {
+	public static function updatePackagesProcess($is_new = false) {
+		// Validate new package
+		if (
+			   !isset($_POST['package'])
+			|| empty($_POST['package'])
+			|| !isset($_POST['package']['name'])
+			|| empty($_POST['package']['name'])
+			|| !isset($_POST['zones'])
+			|| empty($_POST['zones'])
+			|| !is_array($_POST['zones'])
+			|| count($_POST['zones']) < 2
+		) {
+			wp_redirect('/wp-admin/options-general.php?page=cf-arbitrary-text&message=invalid_package');
+			exit();
+		}
+
+		// Remove Placeholder
+		$new_package = $_POST['zones'];
+		unset($new_package['xxx']);
+
+		// Sanitize text input data
+		foreach ($new_package as $id=>&$package) {
+			$package['position'] = intval($package['position']);
+			if ($package['position'] < 1) {
+				$package['position'] = 1;
+			}
+		}
 
 		// Grab existing packages
 		$packages = get_option('_cf-arbitrary-text-packages');
+		$new_package_name = esc_html($_POST['package']['name']);
+		$unique_package_name = $new_package_name;
 
-		$edit_name = esc_html($_POST['package']['name']);
-		$edit_package = $_POST['zones'];
+		// If we're changing the name, delete the old one and treat this as creating a new package
+		if (
+			   isset($_POST['package']['orig_name'])
+			&& $_POST['package']['name'] != $_POST['package']['orig_name']
+			&& !empty($packages[$_POST['package']['orig_name']])
+		) {
+			unset($packages[$_POST['package']['orig_name']]);
+			$is_new = true;
+		}
+
+		// If the package is new, instead of replacing an existing one, ensure the name is unique
+		if ($is_new) {
+			$package_iterator = 1;
+			while (isset($packages[$unique_package_name])) {
+				++$package_iterator;
+				$unique_package_name = $new_package_name.'-'.$package_iterator;
+			}
+		}
 		
-		// remove palceholder and old package info
-		unset($edit_package['xxx']);
-		unset($packages['edit_name']);
-
-		// Sanitize and verify information
-
-		// Report errors
-
 		// Save information
-		$packages[$edit_name] = $edit_package;
+		$packages[$unique_package_name] = $new_package;
 		update_option('_cf-arbitrary-text-packages', $packages);
 
-		wp_redirect('/wp-admin/options-general.php?page=cf-arbitrary-text&message=package_edited', $status = 302);
+		wp_redirect('/wp-admin/options-general.php?page=cf-arbitrary-text&message=package_added', $status = 302);
+		exit();
 	}
 
 	/**
@@ -368,6 +383,13 @@ class cf_arbitrary_text {
 	}
 
 	/**
+	 * Add necessary CSS to admin
+	 */
+	public static function adminEnqueueStyles() {
+		wp_enqueue_style('cfat-admin', trailingslashit(CFAT_DIR_URL) . 'css/cf-arbitrary.css', array(), CFAT_VERSION);
+	}
+
+	/**
 	 * Handler for Add Package / Edit package pages
 	 */
 	public static function addPackageHandler() {
@@ -388,11 +410,11 @@ class cf_arbitrary_text {
 		if (!empty($_POST['cfat_action'])) {
 			switch ($_POST['cfat_action']) {
 				case 'add_package':
-					self::addPackageProcess();
+					self::updatePackagesProcess($is_new=true);
 					return;
 
 				case 'edit_package_process':
-					self::editPackageProcess();
+					self::updatePackagesProcess($is_new=false);
 					return;
 
 				default:

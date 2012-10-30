@@ -3,8 +3,9 @@
 <form action="options-general.php?page=cf-arbitrary-text-add-package" method="post" id="zonepackage">
 	<?php settings_fields('cf-arbitrary-text-add-package'); ?>
 	<input type="hidden" name="cfat_action" value="edit_package_process">
+	<input type="hidden" name="package[orig_name]" value="<?php echo esc_attr($edit); ?>" />
 
-	Package Name: <input type="text" name="package[name]" value="<?php echo esc_attr($edit); ?>">
+	Package Name: <input type="text" name="package[name]" value="<?php echo esc_attr($edit); ?>" class="validate-nonempty">
 
 	<br>
 
@@ -19,7 +20,7 @@ foreach ($package as $zone) : ?>
 			<?php foreach ($keys as $key) { ?>
 				<option value="<?php echo esc_attr($key); ?>"<?php if ($key == $zone['snippet']) { ?> selected="selected" <?php } ?>><?php echo esc_html($key); ?></option>
 			<?php } ?>
-			<select> Position: <input type="text" size="5" name="zones[<?php echo $x; ?>][position]" value="<?php echo esc_attr($zone['position']); ?>">
+			</select> Position: <input type="text" size="5" class="validate-integer" name="zones[<?php echo $x; ?>][position]" data-validminvalue="1" value="<?php echo esc_attr($zone['position']); ?>">
 			<span class="removezone button-secondary">Remove</span>	
 		</p>
 	</div>
@@ -33,7 +34,7 @@ endforeach; ?>
 			<?php foreach ($keys as $key) { ?>
 				<option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($key); ?></option>
 			<?php } ?>
-			<select> Position: <input type="text" size="5" name="zones[xxx][position]">
+			</select> Position: <input type="text" size="5" name="zones[xxx][position]" data-validminvalue="1">
 			<span class="removezone button-secondary">Remove</span>	
 		</p>
 	</div>

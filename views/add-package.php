@@ -4,7 +4,7 @@
 	<?php settings_fields('cf-arbitrary-text-add-package'); ?>
 	<input type="hidden" name="cfat_action" value="add_package">
 
-	Package Name: <input type="text" name="package[name]">
+	Package Name: <input type="text" name="package[name]" class="validate-nonempty">
 
 	<br>
 
@@ -15,7 +15,7 @@
 			<?php foreach ($keys as $key) { ?>
 				<option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($key); ?></option>
 			<?php } ?>
-			<select> Position: <input size="5" type="text" name="zones[xxx][position]">
+			</select> Position: <input size="5" type="text" class="validate-integer" data-validminvalue="1" name="zones[xxx][position]">
 			<span class="removezone button-secondary">Remove</span>	
 		</p>
 	</div>

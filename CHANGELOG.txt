@@ -1,0 +1,7 @@
+# CHANGELOG
+
+# 0.2
+- Updated with validation on fields, cleaned up some behavior
+
+# 0.1a
+- Initial release

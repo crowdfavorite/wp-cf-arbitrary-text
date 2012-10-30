@@ -1,0 +1,7 @@
+form input.validation-failed {
+	background-color: #FF9999;
+}
+form p#validation-error {
+	font-weight: bold;
+	color: #FF0000;
+}
