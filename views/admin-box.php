@@ -13,6 +13,7 @@
 ?>
 <p>Enable package: <input type="checkbox" name="cf-arbitrary-text-post[enable]" <?php echo $checked; ?>value="1"></p>
 
+<?php if (!empty($packages)) { ?>
 <p>Select the Package you want to add to this post</p>
 <select name="cf-arbitrary-text-post[name]">
 <?php
@@ -27,3 +28,11 @@
 	}
 ?>
 </select>
+</p>
+<?php
+}
+else {
+?>
+<p>There are currently no packages available for your site.</p>
+<?php
+}
