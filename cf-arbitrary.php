@@ -73,7 +73,7 @@ class cf_arbitrary_text {
 		//register_setting('cf-arbitrary-text-options', 'cf-arbitrary-text', 'cf_arbitrary_text::optionsValidate');
 
 		$options = get_option('_cf-arbitrary-text');
-		foreach ($options['post_type'] as $post_type => $null) {
+		foreach ((array)$options['post_type'] as $post_type => $null) {
 			add_meta_box(
 				'cf-arbitrary-text',
 				__('CF Arbitrary Text', 'cf-arbitrary-text'),
