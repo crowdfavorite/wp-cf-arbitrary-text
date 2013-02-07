@@ -55,6 +55,8 @@ class cf_arbitrary_text {
 			'package_edited' => __('The package was successfully edited.'),
 			'package_deleted' => __('The package was successfully deleted.'),
 			'invalid_package' => __('The package settings given were invalid.'),
+			'auto_enable_saved' => __('Post type auto-enable was successfully saved.'),
+			'auto_enable_delete' => __('Post type auto-enable was successfully deleted.'),
 		);
 
 		return $messages[$name];
@@ -117,12 +119,37 @@ class cf_arbitrary_text {
 		}
 
 		remove_action('save_post', 'cf_arbitrary_text::onSavePost', 10);
-		if (!empty($_POST['cf-arbitrary-text-post'])) {
+		
+		// Auto-enable packages on new post
+		if ($post->post_status == 'auto-draft') {
+			$package = self::getAutoEnablePackage($post);
+			if (!empty($package)) {
+				$meta = array(
+					'enable' => 1,
+					'name' => $package,
+				);
+
+				update_post_meta($post_id, '_cf-arbitrary-text-post', $meta);
+			}
+		}
+		else if (!empty($_POST['cf-arbitrary-text-post'])) {
 			update_post_meta($post_id, '_cf-arbitrary-text-post', $_POST['cf-arbitrary-text-post']);
 		}
 		else {
 			delete_post_meta($post_id, '_cf-arbitrary-text-post');
 		}
+	}
+
+	public static function getAutoEnablePackage($post) {
+
+		$post = &get_post($post);
+
+		$options = get_option('_cf-arbitrary-text-auto-enable');
+		if (isset($options[$post->post_type]) && !empty($options[$post->post_type]['package'])) {
+			return $options[$post->post_type]['package'];
+		}
+
+		return false;
 	}
 	
 	/**
@@ -235,7 +262,10 @@ class cf_arbitrary_text {
 		$packages[$unique_package_name] = $new_package;
 		update_option('_cf-arbitrary-text-packages', $packages);
 
-		wp_redirect('/wp-admin/options-general.php?page=cf-arbitrary-text&message=package_added', $status = 302);
+		$url = admin_url('options-general.php?page=cf-arbitrary-text&message=package_added');
+
+		wp_redirect($url);
+		echo '<script>window.location="' . $url . '";</script>';
 		exit();
 	}
 
@@ -256,7 +286,11 @@ class cf_arbitrary_text {
 		update_option('_cf-arbitrary-text-packages', $packages);
 
 		// refresh page
-		wp_redirect('/wp-admin/options-general.php?page=cf-arbitrary-text&message=package_deleted', $status = 302);
+
+		$url = admin_url('options-general.php?page=cf-arbitrary-text&message=package_deleted');
+		wp_redirect($url, $status = 302);
+		echo '<script>window.location="' . $url . '";</script>';
+		exit();
 	}
 
 	/**
@@ -278,25 +312,71 @@ class cf_arbitrary_text {
 		}
 
 		// If a save is requested, save post types
-		if ($_POST['cfat_action'] && $_POST['cfat_action'] == 'save_post_types') {
-			$options = get_option('_cf-arbitrary-text');
-			if (is_array($_POST['cf-arbitrary-text'])) {
-				$options['post_type'] = $_POST['cf-arbitrary-text']['post_type'];
-				update_option('_cf-arbitrary-text', $options);
+		if (isset($_REQUEST['cfat_action'])) {
+			if ($_POST['cfat_action'] == 'save_post_types') {
+				$options = get_option('_cf-arbitrary-text');
+				if (is_array($_POST['cf-arbitrary-text'])) {
+					$options['post_type'] = $_POST['cf-arbitrary-text']['post_type'];
+					update_option('_cf-arbitrary-text', $options);
+				}
+				$message = self::parseMessage('post_types_saved');
 			}
-			$message = self::parseMessage('post_types_saved');
+			else if ($_POST['cfat_action'] == 'save_post_types_auto_enable') {
+				$options = get_option('_cf-arbitrary-text-auto-enable');
+				if (is_array($_POST['cf-arbitrary-text'])) {
+
+					if (empty($options)) {
+						$options = array();
+					}
+
+					$item = $_POST['cf-arbitrary-text']['post_type_auto_enable'];
+
+					if (!empty($item['auto_post_type']) && !empty($item['package'])) {
+
+						$options[$item['auto_post_type']] = array(
+							'post_type' => $item['auto_post_type'],
+							'package' => $item['package'],
+						);
+
+						ksort($options);
+
+						update_option('_cf-arbitrary-text-auto-enable', $options);
+					}
+				}
+				$message = self::parseMessage('auto_enable_saved');
+			}
+			else if ($_REQUEST['cfat_action'] == 'delete_auto_enable') {
+				$options = get_option('_cf-arbitrary-text-auto-enable');
+				if (!empty($options) && !empty($_REQUEST['package']) && !empty($_REQUEST['auto_post_type'])) {
+
+					if (isset($options[$_REQUEST['auto_post_type']])) {
+						unset($options[$_REQUEST['auto_post_type']]);
+					}
+
+					update_option('_cf-arbitrary-text-auto-enable', $options);
+				}
+				$message = self::parseMessage('auto_enable_deleted');
+			}
 		}
 
 		// Get list of post types that are normally visible to end users
-		$post_types = get_post_types(array(
+		$post_types_query = get_post_types(array(
 			'public' => true,
 			'publicly_queryable' => true,
 			'has_archive' => true,
 			'show_ui' => true,
-		), 'names');
-		$post_types[] = 'page';
-		$post_types[] = 'post';
-		sort($post_types);
+		), 'objects');
+
+
+		$post_types = array();
+
+		foreach ($post_types_query as $post_type) {
+			$post_types[$post_type->name] = $post_type->label;
+		}
+
+		$post_types['page'] = 'Page';
+		$post_types['post'] = 'Post';
+		asort($post_types);
 
 		// Get options
 		$options = get_option('_cf-arbitrary-text');
@@ -304,6 +384,7 @@ class cf_arbitrary_text {
 		// Get list of packages 
 		$packages = get_option('_cf-arbitrary-text-packages');
 
+		$post_auto_enable = get_option('_cf-arbitrary-text-auto-enable');
 
 		include('views/options.php');
 	}
