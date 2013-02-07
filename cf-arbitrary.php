@@ -119,9 +119,20 @@ class cf_arbitrary_text {
 		}
 
 		remove_action('save_post', 'cf_arbitrary_text::onSavePost', 10);
-		
-		// Auto-enable packages on new post
-		if ($post->post_status == 'auto-draft') {
+
+		if (!empty($_POST['cf-arbitrary-text-post'])) {
+			update_post_meta($post_id, '_cf-arbitrary-text-post', $_POST['cf-arbitrary-text-post']);
+		}
+		else {
+			delete_post_meta($post_id, '_cf-arbitrary-text-post');
+		}
+	}
+
+	/**
+	 * Auto-enable packages on new post
+	 */
+	public static function onTransitionPostStatus($new_status, $old_status, $post) {
+		if ($old_status == 'new' && $new_status != 'inherit') {
 			$package = self::getAutoEnablePackage($post);
 			if (!empty($package)) {
 				$meta = array(
@@ -129,14 +140,10 @@ class cf_arbitrary_text {
 					'name' => $package,
 				);
 
-				update_post_meta($post_id, '_cf-arbitrary-text-post', $meta);
+				update_post_meta($post->ID, '_cf-arbitrary-text-post', $meta);
+
+				remove_action('save_post', 'cf_arbitrary_text::onSavePost', 10);
 			}
-		}
-		else if (!empty($_POST['cf-arbitrary-text-post'])) {
-			update_post_meta($post_id, '_cf-arbitrary-text-post', $_POST['cf-arbitrary-text-post']);
-		}
-		else {
-			delete_post_meta($post_id, '_cf-arbitrary-text-post');
 		}
 	}
 
@@ -512,4 +519,5 @@ add_action('admin_menu', 'cf_arbitrary_text::pluginSettingsMenu');
 add_action('init', 'cf_arbitrary_text::onInit');
 add_action('admin_init', 'cf_arbitrary_text::onAdminInit');
 add_action('save_post', 'cf_arbitrary_text::onSavePost', 10, 2);
+add_action('transition_post_status', 'cf_arbitrary_text::onTransitionPostStatus', 10, 3);
 add_filter('the_content', 'cf_arbitrary_text::insertText', 1000);
