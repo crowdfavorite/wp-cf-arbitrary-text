@@ -408,12 +408,17 @@ class cf_arbitrary_text {
 		$options = get_post_meta($post->ID, '_cf-arbitrary-text-post', true);
 
 		// Check if the post has text enabled, short circuit if not
-		if ($options['enable'] != 1) {
+		if (!isset($options['enable']) || $options['enable'] != 1) {
 			return $content;
 		}
 
 		// Get package information for post
 		$packages = get_option('_cf-arbitrary-text-packages');
+
+		if (!isset($options['name'])) {
+			return;
+		}
+
 		$package = $packages[$options['name']];
 		unset($packages);
 
