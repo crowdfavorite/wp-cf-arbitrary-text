@@ -104,6 +104,19 @@ class cf_arbitrary_text {
 		$packages = get_option('_cf-arbitrary-text-packages');
 		$options = get_post_meta($post->ID, '_cf-arbitrary-text-post', true);
 
+		$enabled = !empty($options) && !empty($options['enable']);
+
+		// Enable checkbox is unchecked
+		if (!$enabled) {
+			
+			// Check if auto-enable is set for this post type
+			$auto_options = get_option('_cf-arbitrary-text-auto-enable');
+			if (isset($auto_options[$post->post_type]) && !empty($auto_options[$post->post_type]['package'])) {
+				$auto_package = $auto_options[$post->post_type]['package'];
+				$auto_disabled = !empty($options) && !empty($options['auto-disable']);
+			}
+		}
+
 		include('views/admin-box.php');
 	}
 		
@@ -125,25 +138,6 @@ class cf_arbitrary_text {
 		}
 		else {
 			delete_post_meta($post_id, '_cf-arbitrary-text-post');
-		}
-	}
-
-	/**
-	 * Auto-enable packages on new post
-	 */
-	public static function onTransitionPostStatus($new_status, $old_status, $post) {
-		if ($old_status == 'new' && $new_status != 'inherit') {
-			$package = self::getAutoEnablePackage($post);
-			if (!empty($package)) {
-				$meta = array(
-					'enable' => 1,
-					'name' => $package,
-				);
-
-				update_post_meta($post->ID, '_cf-arbitrary-text-post', $meta);
-
-				remove_action('save_post', 'cf_arbitrary_text::onSavePost', 10);
-			}
 		}
 	}
 
@@ -202,13 +196,26 @@ class cf_arbitrary_text {
 		$edit = esc_attr($_GET['package']);
 
 		// get existing packages
-		$packages = get_option('_cf-arbitrary-text-packages');
+		$packages = self::getPackages();
+
+		$package_options = self::getPackageOptions($edit);
 
 		$package = $packages[$edit];
+
+		$align_options = self::getSnippetAlignmentOptions();
 
 		include('views/edit-package.php');
 	}
 
+	public static function getSnippetAlignmentOptions() {
+		return apply_filters('cf-arbitrary-align-options', array(
+			'left' => 'Left',
+			'right' => 'Right',
+			'center' => 'Center',
+			'float-left' => 'Float Left',
+			'float-right' => 'Float Right',
+		));
+	}
 
 	/**
 	 * Update package data on save
@@ -234,7 +241,7 @@ class cf_arbitrary_text {
 		unset($new_package['xxx']);
 
 		// Sanitize text input data
-		foreach ($new_package as $id=>&$package) {
+		foreach ($new_package as $id => &$package) {
 			$package['position'] = intval($package['position']);
 			if ($package['position'] < 1) {
 				$package['position'] = 1;
@@ -245,6 +252,7 @@ class cf_arbitrary_text {
 		$packages = get_option('_cf-arbitrary-text-packages');
 		$new_package_name = esc_html($_POST['package']['name']);
 		$unique_package_name = $new_package_name;
+
 
 		// If we're changing the name, delete the old one and treat this as creating a new package
 		if (
@@ -268,6 +276,16 @@ class cf_arbitrary_text {
 		// Save information
 		$packages[$unique_package_name] = $new_package;
 		update_option('_cf-arbitrary-text-packages', $packages);
+
+		// Update package options
+		$package_options = self::getPackageOptions();
+		if (isset($_POST['package']['paragraph_limit_display'])) {
+			$package_options[$unique_package_name]['paragraph_limit_display'] = '1';
+		}
+		else {
+			unset($package_options[$unique_package_name]['paragraph_limit_display']);
+		}
+		update_option('_cf-arbitrary-text-package-options', $package_options);
 
 		$url = admin_url('options-general.php?page=cf-arbitrary-text&message=package_added');
 
@@ -389,9 +407,10 @@ class cf_arbitrary_text {
 		$options = get_option('_cf-arbitrary-text');
 
 		// Get list of packages 
-		$packages = get_option('_cf-arbitrary-text-packages');
+		$packages = self::getPackages();
 
-		$post_auto_enable = get_option('_cf-arbitrary-text-auto-enable');
+		// Get auto-enabled posts
+		$post_auto_enable = self::getAutoEnableOptions();
 
 		include('views/options.php');
 	}
@@ -405,56 +424,211 @@ class cf_arbitrary_text {
 		}
 		
 		global $post;
-		$options = get_post_meta($post->ID, '_cf-arbitrary-text-post', true);
+		
+		$options = self::getPostOptions($post->ID);
+
+		// Check if auto-enable is set
+		$enabled = !empty($options['enable']);
+
+		if (isset($options['name'])) {
+			$package_name = $options['name'];
+		}
 
 		// Check if the post has text enabled, short circuit if not
-		if (!isset($options['enable']) || $options['enable'] != 1) {
+		if ((!$enabled || empty($package_name))) {
+			if (!empty($options['auto-disable'])) {
+				return $content;
+			}
+
+			// Check if auto-enable is set for this post type
+			$auto_options = self::getAutoEnableOptions();
+			if (!isset($auto_options[$post->post_type]) || empty($auto_options[$post->post_type]['package'])) {
+				// Return if not enabled and no auto-enable package set
+				return $content;
+			}
+
+			$package_name = $auto_options[$post->post_type]['package'];
+			$enabled = true;
+		}
+
+		if (empty($package_name)) {
 			return $content;
 		}
 
 		// Get package information for post
-		$packages = get_option('_cf-arbitrary-text-packages');
-
-		if (!isset($options['name'])) {
-			return;
-		}
-
-		$package = $packages[$options['name']];
-		unset($packages);
+		$packages = self::getPackages();
+		$package = $packages[$package_name];
 
 		// Return gracefully if package not found.
 		if (!is_array($package)) {
-			return $content;
-		}
+			if (!empty($options['auto-disable'])) {
+				return $content;
+			}
 
-		// Get zone information
-		$zones = array();
-		foreach ($package as $zone) {
-			$zones[$zone['position']] = $zone['snippet'];
+			// Check if auto enable package was searched
+			if (!isset($auto_options)) {
+				// Check if auto-enable is set for this post type
+				$auto_options = self::getAutoEnableOptions();
+				if (!isset($auto_options[$post->post_type]) || empty($auto_options[$post->post_type]['package'])) {
+					// Return if not enabled and no auto-enable package set
+					return $content;
+				}
+
+				$package_name = $auto_options[$post->post_type]['package'];
+				$package = $packages[$package_name];
+			}
+
+			if (!is_array($package)) {
+				return $content;
+			}
 		}
+		
+		$paragraph_delimiter = apply_filters('cf-arbitrary-p-delimiter', '</p>');
 
 		// Find paragraphs
-		$paragraphs = explode('</p>', $content);
+		$paragraphs = apply_filters('cf-arbitrary-paragraphs', explode($paragraph_delimiter, $content), $content, $paragraph_delimiter);
 
 		// Re-assemble content with
 		$paragraph_count = 1;
 		$new_content = '';
-		foreach ($paragraphs as $paragraph) {
-			$new_content .= $paragraph . '</p>';
-			if (array_key_exists($paragraph_count, $zones)) {
-				$new_content .= $snippet = cfsp_get_content($zones[$paragraph_count] );
+		foreach ((array)$paragraphs as $paragraph) {
+			if (empty($paragraph) || $paragraph == PHP_EOL) {
+				continue;
+			}
+			$new_content .= $paragraph . $paragraph_delimiter;
+			if ($paragraph == $paragraph_delimiter) {
+				continue;
+			}
+			foreach ($package as $zone) {
+				if ($zone['position'] == $paragraph_count) {
+
+					$wrap_snippet = !empty($zone['margin']) || !empty($zone['align']);
+
+					if ($wrap_snippet) {
+						$new_content .= '<font class="cfat-snippet cfat-snippet-' . $paragraph_count . ' cfat-snippet-' . $zone['snippet'];
+
+						if (!empty($zone['align'])) {
+							$new_content .= ' cfat-align-' . $zone['align'];
+						}
+
+						$new_content .= '" style="display:block;';
+
+						if (!empty($zone['margin']) && is_numeric($zone['margin'])) {
+							$new_content .= ' margin:' . $zone['margin'];
+
+							if (is_numeric($zone['margin'])) {
+								$new_content .= 'px';
+							}
+						}
+
+						$new_content .= '">';
+					}
+
+					$new_content .= $snippet = cfsp_get_content( $zone['snippet'] );
+
+					if ($wrap_snippet) {
+						$new_content .= '</font>';
+					}
+				}
 			}
 			$paragraph_count++;
 		}
 
-		// Handle ads that didn't have enough paragraphs, basically put them at the end.
-		foreach ($zones as $paragraph_number => $zone) {
-			if ($paragraph_number >= $paragraph_count) {
-				$new_content .= $snippet = cfsp_get_content($zones[$paragraph_number] );
+		$package_options = self::getPackageOptions($package_name);
+
+		if (empty($package_options) || empty($package_options['paragraph_limit_display'])) {
+			// Handle ads that didn't have enough paragraphs, basically put them at the end.
+			foreach ((array)$package as $zone) {
+				if ($zone['position'] >= $paragraph_count) {
+					$new_content .= $snippet = cfsp_get_content($zones[$paragraph_number] );
+				}
 			}
 		}
 
 		return $new_content;
+	}
+
+	/**
+	 * Get all packages available.
+	 * @staticvar array $packages
+	 * @return array
+	 */
+	public static function getPackages() {
+
+		$packages = get_option('_cf-arbitrary-text-packages');
+
+		if (empty($packages)) {
+			$packages = array();
+		}
+
+		return $packages;
+	}
+
+	public static function getPackageOptions($package = null) {
+		$packageOptions = get_option('_cf-arbitrary-text-package-options');
+
+		if (empty($packageOptions)) {
+			$packageOptions = array();
+		}
+
+		if (!empty($package)) {
+
+			if (!empty($packageOptions[$package])) {
+				return $packageOptions[$package];
+			}
+
+			return array();
+		}
+		
+		return $packageOptions;
+	}
+
+	/**
+	 * Get global plugin options
+	 * @return array
+	 */
+	public static function getOptions() {
+		$options = get_option('_cf-arbitrary-text');
+
+		if (empty($options)) {
+			$options = array();
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Get options for a specified post
+	 * @param int $post_id
+	 * @return array
+	 */
+	public static function getPostOptions($post_id) {
+
+		if (empty($post_id)) {
+			$post_id = get_the_ID();
+		}
+
+		$options = get_post_meta($post_id, '_cf-arbitrary-text-post', true);
+
+		if (empty($options)) {
+			$options = array();
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Get auto-enable post types
+	 * @return array
+	 */
+	public static function getAutoEnableOptions() {
+		$options = get_option('_cf-arbitrary-text-auto-enable');
+
+		if (empty($options)) {
+			$options = array();
+		}
+
+		return $options;
 	}
 
 	/**
@@ -524,5 +698,4 @@ add_action('admin_menu', 'cf_arbitrary_text::pluginSettingsMenu');
 add_action('init', 'cf_arbitrary_text::onInit');
 add_action('admin_init', 'cf_arbitrary_text::onAdminInit');
 add_action('save_post', 'cf_arbitrary_text::onSavePost', 10, 2);
-add_action('transition_post_status', 'cf_arbitrary_text::onTransitionPostStatus', 10, 3);
 add_filter('the_content', 'cf_arbitrary_text::insertText', 1000);

@@ -38,7 +38,7 @@ jQuery(document).ready(function() {
 				.each(function() {
 					var $input = jQuery(this),
 					    inputValue = $input.val(),
-					    parsedInputValue = parseInt($input.val());
+					    parsedInputValue = parseInt($input.val()),
 					    minValue = $input.data('validminvalue'),
 					    parsedMinValue = parseInt(minValue),
 					    maxValue = $input.data('validmaxvalue'),

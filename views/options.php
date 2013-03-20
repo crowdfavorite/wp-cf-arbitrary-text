@@ -8,24 +8,25 @@
 	<h2>CF Arbitrary Text</h2>
 
 	<form action="" method="post">
-	<?php settings_fields('cf-arbitrary-text-options'); ?>
-	<input type="hidden" name="cfat_action" value="save_post_types">
+		
+		<?php settings_fields('cf-arbitrary-text-options'); ?>
+		<input type="hidden" name="cfat_action" value="save_post_types">
 
-	<h3>Activate Post Types</h3>
+		<h3>Activate Post Types</h3>
 
-	<p>Check the post types where you want the option of adding arbitrary text.</p>
+		<p>Check the post types where you want the option of adding arbitrary text.</p>
 
-	<?php foreach ($post_types as $post_type => $post_label) { ?>
-	<input id="cf-arbitrary-text-post-type-<?php echo esc_attr($post_type); ?>" 
-		type="checkbox" value="1" name="cf-arbitrary-text[post_type][<?php echo esc_attr($post_type); ?>]"
-		<?php if ($options['post_type'][esc_attr($post_type)] == 1) {
-			?>checked="checked"<?php
-		} ?>
-		> 
-		<label for="cf-arbitrary-text-post-type-<?php echo esc_attr($post_type); ?>"><?php echo esc_html($post_label); ?></label> &nbsp;
-	<?php } ?>
+		<?php foreach ($post_types as $post_type => $post_label) { ?>
+		<input id="cf-arbitrary-text-post-type-<?php echo esc_attr($post_type); ?>"
+			type="checkbox" value="1" name="cf-arbitrary-text[post_type][<?php echo esc_attr($post_type); ?>]"
+			<?php if ($options['post_type'][esc_attr($post_type)] == 1) {
+				?>checked="checked"<?php
+			} ?>
+			>
+			<label for="cf-arbitrary-text-post-type-<?php echo esc_attr($post_type); ?>"><?php echo esc_html($post_label); ?></label> &nbsp;
+		<?php } ?>
 
-	<?php submit_button(); ?>
+		<?php submit_button(); ?>
 		 
 	</form>
 
@@ -99,7 +100,7 @@
 
 	<?php if (is_array($packages) && count($packages) > 0) { ?>
 
-	<p>Select the post type and package to auto-enable on post type creation:</p>
+	<p>Select the post type and package to auto-enable:</p>
 
 	<form action="" method="post">
 		
