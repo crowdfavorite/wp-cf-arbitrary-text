@@ -21,10 +21,11 @@ jQuery(document).ready(function() {
 	
 
 	jQuery('.delete-button').click(function (e) {
-	//	e.preventDefault();
-
 		return confirm('This will permanently remove this package. Are you sure?');
+	});
 
+	jQuery('.auto-delete-button').click(function (e) {
+		return confirm('This will remove this auto-enable setting. Are you sure?');
 	});
 
 	function validateForm(e) {
@@ -37,7 +38,7 @@ jQuery(document).ready(function() {
 				.each(function() {
 					var $input = jQuery(this),
 					    inputValue = $input.val(),
-					    parsedInputValue = parseInt($input.val());
+					    parsedInputValue = parseInt($input.val()),
 					    minValue = $input.data('validminvalue'),
 					    parsedMinValue = parseInt(minValue),
 					    maxValue = $input.data('validmaxvalue'),
