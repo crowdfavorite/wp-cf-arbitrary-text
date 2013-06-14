@@ -124,10 +124,14 @@ class cf_arbitrary_text {
 	 * Add proper data to saved posts
 	 */		
 	public static function onSavePost($post_id, $post) {
-		if (false == self::$enabled) {
+		if (false == self::$enabled || empty($post)) {
 			return;
 		}
 		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+			return;
+		}
+
+		if ($post->post_type == 'revision') {
 			return;
 		}
 
