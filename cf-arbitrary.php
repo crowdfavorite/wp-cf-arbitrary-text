@@ -528,7 +528,7 @@ class cf_arbitrary_text {
 						$new_content .= '">';
 					}
 
-					$new_content .= $snippet = cfsp_get_content( $zone['snippet'] );
+					$new_content .= cfsp_get_content( $zone['snippet'] );
 
 					if ($wrap_snippet) {
 						$new_content .= '</font>';
@@ -544,7 +544,7 @@ class cf_arbitrary_text {
 			// Handle ads that didn't have enough paragraphs, basically put them at the end.
 			foreach ((array)$package as $zone) {
 				if ($zone['position'] >= $paragraph_count) {
-					$new_content .= $snippet = cfsp_get_content( $zone['snippet'] );
+					$new_content .= cfsp_get_content( $zone['snippet'] );
 				}
 			}
 		}
