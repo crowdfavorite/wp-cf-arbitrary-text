@@ -3,7 +3,7 @@
 Plugin Name: CF Abritrary Text
 Plugin URI: http://crowdfavorite.com
 Description: Insert arbitrary text (usually ads) at specific places in stories
-Version: 0.2
+Version: 0.5
 Author: Crowd Favorite
 Author URI: http://crowdfavorite.com
 */
@@ -544,7 +544,7 @@ class cf_arbitrary_text {
 			// Handle ads that didn't have enough paragraphs, basically put them at the end.
 			foreach ((array)$package as $zone) {
 				if ($zone['position'] >= $paragraph_count) {
-					$new_content .= $snippet = cfsp_get_content($zones[$paragraph_number] );
+					$new_content .= $snippet = cfsp_get_content( $zone['snippet'] );
 				}
 			}
 		}

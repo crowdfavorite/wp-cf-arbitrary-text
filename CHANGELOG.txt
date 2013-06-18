@@ -1,5 +1,8 @@
 # CHANGELOG
 
+# 0.5
+- Change cfsp_get_content variable to show correct snippet when assigned to a paragraph number higher than the number of paragraphs in the post.
+
 # 0.4
 - Fix issue with auto-enable package on post save.
 
