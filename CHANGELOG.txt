@@ -1,5 +1,8 @@
 # CHANGELOG
 
+# 0.6
+- Fix issue where if selected package name contains '&' character it doesn't properly get selected in admin dropdown.
+
 # 0.51
 - Remove extraneous variable assignment from cfsp_get_content calls.
 

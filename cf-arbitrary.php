@@ -3,7 +3,7 @@
 Plugin Name: CF Abritrary Text
 Plugin URI: http://crowdfavorite.com
 Description: Insert arbitrary text (usually ads) at specific places in stories
-Version: 0.5
+Version: 0.6
 Author: Crowd Favorite
 Author URI: http://crowdfavorite.com
 */
