@@ -1,5 +1,8 @@
 # CHANGELOG
 
+# 0.61
+- Fix issue where if selected package name contains '&' character uses the default package.
+
 # 0.6
 - Fix issue where if selected package name contains '&' character it doesn't properly get selected in admin dropdown.
 
