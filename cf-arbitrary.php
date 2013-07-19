@@ -704,4 +704,4 @@ add_action('admin_menu', 'cf_arbitrary_text::pluginSettingsMenu');
 add_action('init', 'cf_arbitrary_text::onInit');
 add_action('admin_init', 'cf_arbitrary_text::onAdminInit');
 add_action('save_post', 'cf_arbitrary_text::onSavePost', 10, 2);
-add_filter('the_content', 'cf_arbitrary_text::insertText', 9);
+add_filter('the_content', 'cf_arbitrary_text::insertText', 10);
