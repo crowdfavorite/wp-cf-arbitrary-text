@@ -1,5 +1,8 @@
 # CHANGELOG
 
+# 0.62
+- Increase priority so that text is replaced before any other plugins change content.
+
 # 0.61
 - Fix issue where if selected package name contains '&' character uses the default package.
 

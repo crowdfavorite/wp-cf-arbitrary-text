@@ -3,12 +3,12 @@
 Plugin Name: CF Abritrary Text
 Plugin URI: http://crowdfavorite.com
 Description: Insert arbitrary text (usually ads) at specific places in stories
-Version: 0.61
+Version: 0.62
 Author: Crowd Favorite
 Author URI: http://crowdfavorite.com
 */
 
-define('CFAT_VERSION', '0.61');
+define('CFAT_VERSION', '0.62');
 define('CFAT_DIR', plugin_dir_path(__FILE__));
 if (file_exists(trailingslashit(get_template_directory()).'plugins/'.basename(dirname(__FILE__)))) {
 	define('CFAT_DIR_URL', trailingslashit(trailingslashit(get_bloginfo('template_url')).'plugins/'.basename(dirname(__FILE__))));
@@ -704,4 +704,4 @@ add_action('admin_menu', 'cf_arbitrary_text::pluginSettingsMenu');
 add_action('init', 'cf_arbitrary_text::onInit');
 add_action('admin_init', 'cf_arbitrary_text::onAdminInit');
 add_action('save_post', 'cf_arbitrary_text::onSavePost', 10, 2);
-add_filter('the_content', 'cf_arbitrary_text::insertText', 1000);
+add_filter('the_content', 'cf_arbitrary_text::insertText', 1);
