@@ -1,5 +1,8 @@
 # CHANGELOG
 
+# 0.63
+- Add option to have bottom zone for short stories with fewer paragraphs than the zone location display a specific number of paragraphs from the bottom of the post, along with individual post overrides.
+
 # 0.62
 - Increase priority so that text is replaced before any other plugins change content.
 

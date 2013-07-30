@@ -31,5 +31,11 @@ Disable auto-enable: <input type="checkbox" name="cf-arbitrary-text-post[auto-di
 else {
 ?>
 <p>There are currently no packages available for your site.</p>
-<?php
-}
+<?php 
+} 
+
+$override = get_post_meta( get_the_ID(), '_cf-arbitrary-text-paragraph-override', true);
+?>
+
+Bottom paragraph override. (Blank for none.)<br>Global setting: <b><?php echo get_option( '_cfat_bottom_paragraphs') == false ? 0 : get_option( '_cfat_bottom_paragraphs'); ?></b> 
+<input type="text" name="cf-arbitrary-text-paragraph-override" value="<?php echo $override; ?>" size="3">

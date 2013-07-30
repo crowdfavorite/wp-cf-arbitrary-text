@@ -130,4 +130,29 @@
 
 	<?php } ?>
 
+	<h3>Short Story Zone Handling</h3>
+
+	<form action="" method="post">
+		
+		<p>If a package zone is set to display at a paragraph number higher than the number of paragraphs in a post, and the 
+			"Limit display of snippets when paragraph count is less than the position number." option is unchecked, this option
+			sets the number of paragraphs from the bottom that the zone will display. This setting is universal, but can be 
+			overridden on a per-post basis. If nothing is entered below, it will default to "0" which puts the zone at the
+			bottom of the post.
+		</p>
+
+		<?php 
+			settings_fields('cf-arbitrary-text-options'); 
+			$bottom_paragraph = get_option( '_cfat_bottom_paragraphs');
+
+			if ($bottom_paragraph === false) {
+				$bottom_paragraph = 0;
+			}
+		?>
+		<input type="hidden" name="cfat_action" value="save_paragraph_options">
+		<input type="text" name="cfat_bottom_paragraphs" value="<?php echo $bottom_paragraph; ?>">
+		<?php submit_button(); ?>
+		 
+	</form>
+
 </div>

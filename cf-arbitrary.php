@@ -3,7 +3,7 @@
 Plugin Name: CF Abritrary Text
 Plugin URI: http://crowdfavorite.com
 Description: Insert arbitrary text (usually ads) at specific places in stories
-Version: 0.62
+Version: 0.63
 Author: Crowd Favorite
 Author URI: http://crowdfavorite.com
 */
@@ -57,6 +57,7 @@ class cf_arbitrary_text {
 			'invalid_package' => __('The package settings given were invalid.'),
 			'auto_enable_saved' => __('Post type auto-enable was successfully saved.'),
 			'auto_enable_delete' => __('Post type auto-enable was successfully deleted.'),
+			'bottom_paragraphs_changed' => __('Bottom paragraph settings changed.'),
 		);
 
 		return $messages[$name];
@@ -142,6 +143,13 @@ class cf_arbitrary_text {
 		}
 		else {
 			delete_post_meta($post_id, '_cf-arbitrary-text-post');
+		}
+
+		if (!empty($_POST['cf-arbitrary-text-paragraph-override'])) {
+			update_post_meta($post_id, '_cf-arbitrary-text-paragraph-override', (int) $_POST['cf-arbitrary-text-paragraph-override']);
+		}
+		else {
+			delete_post_meta($post_id, '_cf-arbitrary-text-paragraph-override');
 		}
 	}
 
@@ -299,7 +307,7 @@ class cf_arbitrary_text {
 	}
 
 	/**
-	 * Process ot delete a package
+	 * Process to delete a package
 	 */
 	public static function deletePackage() {
 
@@ -386,6 +394,12 @@ class cf_arbitrary_text {
 				}
 				$message = self::parseMessage('auto_enable_deleted');
 			}
+			else if ($_REQUEST['cfat_action'] == 'save_paragraph_options') {
+				$paragraphs = (int) $_REQUEST['cfat_bottom_paragraphs'];
+				update_option('_cfat_bottom_paragraphs', $paragraphs);
+	
+				$message = self::parseMessage('bottom_paragraphs_changed');
+			}
 		}
 
 		// Get list of post types that are normally visible to end users
@@ -429,6 +443,13 @@ class cf_arbitrary_text {
 		
 		global $post;
 		
+		$bottom_paragraph = get_option( '_cfat_bottom_paragraphs') !== false ? get_option( '_cfat_bottom_paragraphs') : 0;
+
+		$bottom_paragraph_override = get_post_meta( get_the_ID(), '_cf-arbitrary-text-paragraph-override', true);
+		if (trim($bottom_paragraph_override) !== '') {
+			$bottom_paragraph = $bottom_paragraph_override;
+		}
+
 		$options = self::getPostOptions($post->ID);
 
 		// Check if auto-enable is set
@@ -494,8 +515,11 @@ class cf_arbitrary_text {
 		// Find paragraphs
 		$paragraphs = apply_filters('cf-arbitrary-paragraphs', explode($paragraph_delimiter, $content), $content, $paragraph_delimiter);
 
+		$paragraphs_total = count($paragraphs) - 1; // There always seems ot be a "bonus" empty paragrpah at the end.
+		$package_options = self::getPackageOptions($package_name);
+
 		// Re-assemble content with
-		$paragraph_count = 1;
+		$paragraph_counter = 1;
 		$new_content = '';
 		foreach ((array)$paragraphs as $paragraph) {
 			if (empty($paragraph) || $paragraph == PHP_EOL) {
@@ -506,12 +530,15 @@ class cf_arbitrary_text {
 				continue;
 			}
 			foreach ($package as $zone) {
-				if ($zone['position'] == $paragraph_count) {
+
+				if ( ($zone['position'] == $paragraph_counter) ||
+					 (($zone['position'] > $paragraphs_total) && ($paragraph_counter == ($paragraphs_total - $bottom_paragraph)) && empty($package_options['paragraph_limit_display']))
+				   ) {
 
 					$wrap_snippet = !empty($zone['margin']) || !empty($zone['align']);
 
 					if ($wrap_snippet) {
-						$new_content .= '<font class="cfat-snippet cfat-snippet-' . $paragraph_count . ' cfat-snippet-' . $zone['snippet'];
+						$new_content .= '<font class="cfat-snippet cfat-snippet-' . $paragraph_counter . ' cfat-snippet-' . $zone['snippet'];
 
 						if (!empty($zone['align'])) {
 							$new_content .= ' cfat-align-' . $zone['align'];
@@ -537,19 +564,19 @@ class cf_arbitrary_text {
 					}
 				}
 			}
-			$paragraph_count++;
+			$paragraph_counter++;
 		}
 
-		$package_options = self::getPackageOptions($package_name);
-
-		if (empty($package_options) || empty($package_options['paragraph_limit_display'])) {
-			// Handle ads that didn't have enough paragraphs, basically put them at the end.
-			foreach ((array)$package as $zone) {
-				if ($zone['position'] >= $paragraph_count) {
-					$new_content .= cfsp_get_content( $zone['snippet'] );
-				}
-			}
-		}
+//		$package_options = self::getPackageOptions($package_name);
+//
+//		if (empty($package_options) || empty($package_options['paragraph_limit_display'])) {
+//			// Handle ads that didn't have enough paragraphs, basically put them at the end.
+//			foreach ($package as $zone) {
+//				if ($zone['position'] >= $paragraph_counter) {
+//					$new_content .= cfsp_get_content( $zone['snippet'] );
+//				}
+//			}
+//		}
 
 		return $new_content;
 	}
